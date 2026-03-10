@@ -151,7 +151,7 @@ typeset -ga JOVIAL_PROMPT_PRIORITY=(
 )
 
 # pin last command execute elapsed, if the threshold is reached
-typeset -gi JOVIAL_EXEC_THRESHOLD_SECONDS=4
+typeset -gi JOVIAL_EXEC_THRESHOLD_MS=4
 
 # prefixes and suffixes of jovial prompt part
 # all values wrapped in `${...}` will be subject to `Prompt-Expansion` during initialization
@@ -180,7 +180,7 @@ typeset -gA JOVIAL_AFFIXES=(
     venv.prefix            ' ${JOVIAL_PALETTE[normal]}('
     venv.suffix            '${JOVIAL_PALETTE[normal]})'
 
-    exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}~'
+    exec-elapsed.prefix    ' ${JOVIAL_PALETTE[elapsed]}'
     exec-elapsed.suffix    ' '
 
     exit-code.prefix       ' ${JOVIAL_PALETTE[exit.mark]}exit:'
@@ -620,24 +620,26 @@ typeset -gA jovial_affix_lengths=()
 
 # pin the last command execute elapsed and exit code at previous line end
 @jov.pin-execute-info() {
-    local -i exec_seconds="${1:-0}"
+    local -i exec_ms="${1:-0}"
     local -i exit_code="${2:-0}"
 
     local -i pin_length=0
 
-    if (( JOVIAL_EXEC_THRESHOLD_SECONDS >= 0)) && (( exec_seconds >= JOVIAL_EXEC_THRESHOLD_SECONDS )); then
-        local -i seconds=$(( exec_seconds % 60 ))
-        local -i minutes=$(( exec_seconds / 60 % 60 ))
-        local -i hours=$(( exec_seconds / 3600 ))
+    if (( JOVIAL_EXEC_THRESHOLD_MS >= 0)) && (( exec_ms >= JOVIAL_EXEC_THRESHOLD_MS )); then
+        local -i milliseconds=$(( exec_ms % 1000 ))
+        local -i seconds=$(( exec_ms / 1000 % 60 ))
+        local -i minutes=$(( exec_ms / 60000 % 60 ))
+        local -i hours=$(( exec_ms / 3600000 ))
 
         local -a humanize=()
 
         (( hours > 0 )) && humanize+="${hours}h"
         (( minutes > 0 )) && humanize+="${minutes}m"
         (( seconds > 0 )) && humanize+="${seconds}s"
+        (( milliseconds > 0 )) && humanize+="${milliseconds}ms"
 
         # join array with 1 space
-        local elapsed="${(j.:.)humanize}"
+        local elapsed="${(j. .)humanize}"
 
         jovial_parts[exec-elapsed]="${sgr_reset}${JOVIAL_AFFIXES[exec-elapsed.prefix]}${JOVIAL_PALETTE[elapsed]}${elapsed}${JOVIAL_AFFIXES[exec-elapsed.suffix]}"
         pin_length+=$(( ${jovial_affix_lengths[exec-elapsed]} + ${#elapsed} ))
@@ -982,7 +984,7 @@ typeset -ga JOVIAL_DEV_ENV_DETECT_FUNCS=(
 # https://zsh.sourceforge.io/Doc/Release/Zsh-Modules.html#The-zsh_002fdatetime-Module
 typeset -gi jovial_exec_timestamp=0
 @jov.exec-timestamp() {
-    jovial_exec_timestamp=${EPOCHSECONDS}
+    jovial_exec_timestamp=$(( EPOCHREALTIME * 1000 ))
 }
 add-zsh-hook preexec @jov.exec-timestamp
 
@@ -997,10 +999,10 @@ add-zsh-hook preexec @jov.exec-timestamp
 
 @jov.prompt-prepare() {
     local -i exit_code=$?
-    local -i exec_seconds=0
+    local -i exec_ms=0
 
     if (( jovial_exec_timestamp > 0 )); then
-        exec_seconds=$(( EPOCHSECONDS - jovial_exec_timestamp ))
+        exec_ms=$(( EPOCHREALTIME * 1000 - jovial_exec_timestamp ))
         jovial_exec_timestamp=0
     fi
 
@@ -1020,7 +1022,7 @@ add-zsh-hook preexec @jov.exec-timestamp
         @jov.async-git-check
     fi
 
-    @jov.pin-execute-info ${exec_seconds} ${exit_code}
+    @jov.pin-execute-info ${exec_ms} ${exit_code}
     @jov.set-margin-line
     @jov.set-host-name
     @jov.set-user-name

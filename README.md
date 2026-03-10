@@ -316,7 +316,7 @@ These variables are designed for customization:
 - [`JOVIAL_PROMPT_ORDER`](#order-of-parts)
 - [`JOVIAL_PROMPT_PRIORITY`](#priority-of-parts)
 - [`JOVIAL_AFFIXES`](#affixes)
-- [`JOVIAL_EXEC_THRESHOLD_SECONDS`](#execute-elapsed)
+- [`JOVIAL_EXEC_THRESHOLD_MS`](#execute-elapsed)
 - [`JOVIAL_DEV_ENV_DETECT_FUNCS`](#detect-development-env)
 
 
@@ -549,10 +549,10 @@ JOVIAL_AFFIXES[current-time.dynamic]='%I:%M:%S %p'
 Default is:
 
 ```zsh
-JOVIAL_EXEC_THRESHOLD_SECONDS=4
+JOVIAL_EXEC_THRESHOLD_MS=4
 ```
 
-This threshold is the number of seconds for the last command's execution elapsed time. It will pin the info if the threshold is reached.
+This threshold is the number of milliseconds for the last command's execution elapsed time. It will pin the info if the threshold is reached.
 
 Set to `-1` if you want to disable displaying the time.
 
